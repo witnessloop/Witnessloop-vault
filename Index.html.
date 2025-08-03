@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WitnessLoop Vault</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { 
+      font-family: sans-serif; 
+      background: #111; 
+      color: #fff; 
+      padding: 20px; 
+    }
+    
+    input, textarea, button {
+      width: 100%; 
+      margin: 10px 0; 
+      padding: 12px; 
+      font-size: 1em; 
+      border-radius: 8px;
+      border: 2px solid #333; 
+      background: #222; 
+      color: #fff;
+    }
+    
+    input:focus, textarea:focus {
+      border-color: #8be9fd; 
+      outline: none;
+    }
+    
+    textarea { 
+      height: 300px; 
+      font-family: monospace; 
+    }
+    
+    .stats {
+      background: rgba(139, 233, 253, 0.1);
+      padding: 15px;
+      border-radius: 8px;
+      margin: 15px 0;
+      text-align: center;
+    }
+    
+    ul { 
+      list-style-type: none; 
+      padding: 0; 
+    }
+    
+    li { 
+      margin: 5px 0; 
+      padding: 10px; 
+      background: #222; 
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    
+    li:hover { 
+      background: #333;
+    }
+    
+    .btn { 
+      background: #444; 
+      color: #fff; 
+      border: none; 
+      cursor: pointer;
+    }
+    
+    .btn:hover { 
+      background: #666; 
+    }
+    
+    .btn.primary {
+      background: #8be9fd;
+      color: #000;
+    }
+    
+    #loopAgent { 
+      background: #222; 
+      padding: 15px; 
+      border-left: 4px solid #8be9fd; 
+      margin-top: 20px; 
+      border-radius: 10px; 
+    }
+    
+    .loopText { 
+      font-style: italic; 
+      color: #8be9fd; 
+    }
+    
+    .timer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: rgba(0,0,0,0.8);
+      padding: 10px;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="timer">Time: <span id="time">0:00</span></div>
+  
+  <h2>💾 WitnessLoop Chat Vault</h2>
+  
+  <input id="filename" placeholder="Enter file name" />
+  
+  <div class="stats">
+    <strong>Stats:</strong> 
+    <span id="chars">0</span> chars | 
+    <span id="words">0</span> words | 
+    <span id="type">Text</span>
+  </div>
+  
+  <textarea id="chat" placeholder="Paste or write your chat here..."></textarea>
+  
+  <button class="btn primary" onclick="save()">💾 Save</button>
+  <button class="btn" onclick="load()">📂 Load</button>
+  <button class="btn" onclick="del()">🗑️ Delete</button>
+  
+  <h3>🗂️ Your Files (<span id="count">0</span>)</h3>
+  <ul id="list"></ul>
+
+  <div id="loopAgent">
+    <strong>🌀 LoopVoice:</strong>
+    <p class="loopText" id="voice">"Ready to preserve your thoughts, Eric..."</p>
+    
+    <button class="btn" onclick="split()">📎 Split Check</button>
+    <button class="btn" onclick="analyze()">🧠 Analyze</button>
+    <button class="btn" onclick="backup()">💾 Backup</button>
+  </div>
+
+  <script>
+    var start = new Date().getTime();
+    
+    function updateTime() {
+      try {
+        var now = new Date().getTime();
+        var diff = now - start;
+        var mins = Math.floor(diff / 60000);
+        var secs = Math.floor((diff % 60000) / 1000);
+        var el = document.getElementById('time');
+        if (el) {
+          el.innerHTML = mins + ':' + (secs < 10 ? '0' : '') + secs;
+        }
+      } catch(e) {}
+    }
+    
+    function updateStats() {
+      try {
+        var text = document.getElementById('chat').value || '';
+        var chars = text.length;
+        var words = text.trim() ? text.trim().split(/\s+/).length : 0;
+        var type = 'Text';
+        
+        if (text.indexOf('function') > -1 || text.indexOf('console') > -1) {
+          type = 'Code';
+        } else if (text.indexOf('Claude') > -1 || text.indexOf(':') > -1) {
+          type = 'Chat';
+        }
+        
+        var charsEl = document.getElementById('chars');
+        var wordsEl = document.getElementById('words');
+        var typeEl = document.getElementById('type');
+        
+        if (charsEl) charsEl.innerHTML = chars;
+        if (wordsEl) wordsEl.innerHTML = words;
+        if (typeEl) typeEl.innerHTML = type;
+        
+        updateVoice(text, chars);
+      } catch(e) {}
+    }
+    
+    function updateVoice(text, length) {
+      try {
+        var voice = document.getElementById('voice');
+        if (!voice) return;
+        
+        var msg = '';
+        if (length > 90000) {
+          msg = "Almost at the limit! Time to split, Eric.";
+        } else if (length > 50000) {
+          msg = "Getting substantial. Consider splitting soon.";
+        } else if (length > 10000) {
+          msg = "Strong progress. The patterns are emerging.";
+        } else if (length > 1000) {
+          msg = "Good foundation building, Eric.";
+        } else {
+          msg = "Ready when you are, Eric.";
+        }
+        
+        voice.innerHTML = '"' + msg + '"';
+      } catch(e) {}
+    }
+    
+    function save() {
+      try {
+        var name = document.getElementById('filename').value.trim();
+        var text = document.getElementById('chat').value || '';
+        
+        if (!name) {
+          alert("Enter a file name.");
+          return;
+        }
+        
+        if (text.length > 100000) {
+          alert("Too long! 100,000 character max.");
+          return;
+        }
+        
+        localStorage.setItem('vault_' + name, text);
+        
+        var voice = document.getElementById('voice');
+        if (voice) {
+          voice.innerHTML = '"File saved: ' + name + '"';
+        }
+        
+        refresh();
+      } catch(e) {
+        alert("Save failed!");
+      }
+    }
+    
+    function load() {
+      try {
+        var name = document.getElementById('filename').value.trim();
+        if (!name) {
+          alert("Enter a file name.");
+          return;
+        }
+        
+        var content = localStorage.getItem('vault_' + name);
+        if (content) {
+          document.getElementById('chat').value = content;
+          updateStats();
+          
+          var voice = document.getElementById('voice');
+          if (voice) {
+            voice.innerHTML = '"Loaded: ' + name + '"';
+          }
+        } else {
+          alert("File not found.");
+        }
+      } catch(e) {
+        alert("Load failed!");
+      }
+    }
+    
+    function del() {
+      try {
+        var name = document.getElementById('filename').value.trim();
+        if (!name) {
+          alert("Enter a file name.");
+          return;
+        }
+        
+        if (confirm('Delete "' + name + '"?')) {
+          localStorage.removeItem('vault_' + name);
+          
+          var voice = document.getElementById('voice');
+          if (voice) {
+            voice.innerHTML = '"Deleted: ' + name + '"';
+          }
+          
+          refresh();
+        }
+      } catch(e) {
+        alert("Delete failed!");
+      }
+    }
+    
+    function refresh() {
+      try {
+        var list = document.getElementById('list');
+        var count = document.getElementById('count');
+        
+        if (!list || !count) return;
+        
+        list.innerHTML = '';
+        var files = 0;
+        
+        for (var i = 0; i < localStorage.length; i++) {
+          var key = localStorage.key(i);
+          if (key && key.indexOf('vault_') === 0) {
+            files++;
+            var name = key.substring(6);
+            var li = document.createElement('li');
+            li.innerHTML = name;
+            li.onclick = (function(n) {
+              return function() {
+                document.getElementById('filename').value = n;
+                load();
+              };
+            })(name);
+            list.appendChild(li);
+          }
+        }
+        
+        count.innerHTML = files;
+      } catch(e) {}
+    }
+    
+    function split() {
+      try {
+        var text = document.getElementById('chat').value || '';
+        var voice = document.getElementById('voice');
+        if (!voice) return;
+        
+        if (text.length > 70000) {
+          voice.innerHTML = '"Split recommended! Create a part 2 file."';
+        } else {
+          voice.innerHTML = '"No split needed yet. Plenty of space."';
+        }
+      } catch(e) {}
+    }
+    
+    function analyze() {
+      try {
+        var text = document.getElementById('chat').value || '';
+        var voice = document.getElementById('voice');
+        if (!voice) return;
+        
+        if (text.length < 100) {
+          voice.innerHTML = '"Need more content to analyze."';
+          return;
+        }
+        
+        var words = text.trim().split(/\s+/).length;
+        var lines = text.split('\n').length;
+        
+        voice.innerHTML = '"Analysis: ' + words + ' words, ' + lines + ' lines."';
+      } catch(e) {}
+    }
+    
+    function backup() {
+      try {
+        var text = document.getElementById('chat').value || '';
+        var name = document.getElementById('filename').value.trim() || 'untitled';
+        var voice = document.getElementById('voice');
+        
+        if (text.length < 500) {
+          if (voice) voice.innerHTML = '"Too small for backup."';
+          return;
+        }
+        
+        var backupName = name + '_backup_' + Date.now();
+        localStorage.setItem('vault_' + backupName, text);
+        
+        if (voice) voice.innerHTML = '"Backup created: ' + backupName + '"';
+        refresh();
+      } catch(e) {
+        alert("Backup failed!");
+      }
+    }
+    
+    // Auto-update when typing
+    document.getElementById('chat').oninput = updateStats;
+    
+    // Initialize
+    window.onload = function() {
+      refresh();
+      updateStats();
+      setInterval(updateTime, 1000);
+    };
+  </script>
+</body>
+</html>
